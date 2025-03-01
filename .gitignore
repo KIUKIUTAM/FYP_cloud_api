@@ -1,2 +1,7 @@
 .DS_store
 cloud_api_sample_docker_v1.10.0.tar
+
+
+data/
+logs/
+tmp/
