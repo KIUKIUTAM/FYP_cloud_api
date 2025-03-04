@@ -6,4 +6,6 @@ data/
 logs/
 tmp/
 
+application.yml
 */application.yml
+
