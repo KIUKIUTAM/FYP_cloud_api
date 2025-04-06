@@ -42,7 +42,8 @@ docker compose up -d
 <br>
 
 
-
+O:\cloud_api_version\cloud_api_version\dji_project\cloud_api_sample_v2\cloud_api_sample\source\nginx\front_page
+npm run service
 
 
 OSS(minIO):<br>
