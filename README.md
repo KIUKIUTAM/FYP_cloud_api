@@ -8,36 +8,18 @@ change the ip to your localhost<br>
 edit cloud_api_sample/source/nginx/front_page/src/api/http/config.ts<br>
 change the ip to your localhost<br>
 
+3.<br>
+put the model in to FYP_cloud_api\cloud_api\source\python\app\model <br>
+https://drive.google.com/file/d/1ykycizTj5vJ-9QyvQrGH4miwfctzC_X1/view?usp=sharing
+
+
+
+
 open docker :<br>
 
 
 
-
-
-cd E:\dji_project\cloud_api_sample_v1\cloud_api_sample
-<br>
-docker load -i cloud_api_sample_docker_v1.10.0.tar
-<br>
-remove nginx image<br>
-cd source/backend_service/
-<br>
-
-docker build -t dji/cloud_api_sample:latest .
-<br>
-
-cd ..
-<br>
-
-cd ..
-<br>
-
-cd source/nginx/
-<br>
-
-docker build -t dji/nginx:latest .
-<br>
-
-
+docker compose build
 docker compose up -d
 <br>
 
