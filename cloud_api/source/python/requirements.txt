@@ -1,0 +1,4 @@
+Flask==3.1.0         # Web framework
+ultralytics==8.3.82    # For YOLO model handling
+minio==7.2.15           # Minio client library
+Pillow==11.1.0          # Image processing

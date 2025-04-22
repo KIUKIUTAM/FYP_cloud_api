@@ -1,0 +1,161 @@
+server:
+  port: 6789
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: cloud-api-sample
+  datasource:
+    druid:
+      type: com.alibaba.druid.pool.DruidDataSource
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://192.168.1.5:3306/cloud_api?useSSL=false&allowPublicKeyRetrieval=true
+      username: root
+      password: root
+      initial-size: 10
+      min-idle: 10
+      max-active: 20
+      max-wait: 60000
+
+  redis:
+    host: 192.168.1.5
+    port: 6379
+    database: 0
+    username: # if you enable
+    password:
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+  servlet:
+    multipart:
+      max-file-size: 2GB
+      max-request-size: 2GB
+
+jwt:
+  issuer: DJI
+  subject: CloudApiSample
+  secret: CloudApiSample
+  age: 86400
+
+mqtt:
+  # @see com.dji.sample.component.mqtt.model.MqttUseEnum
+  # BASIC parameters are required.
+  BASIC:
+    protocol: MQTT # @see com.dji.sample.component.mqtt.model.MqttProtocolEnum
+    host: 192.168.1.5
+    port: 1883
+    username: JavaServer
+    password: 123456
+    client-id: 123456
+    # If the protocol is ws/wss, this value is required.
+    path:
+  DRC:
+    protocol: WS # @see com.dji.sample.component.mqtt.model.MqttProtocolEnum
+    host: 192.168.1.5
+    port: 8083
+    path: /mqtt
+    username: JavaServer
+    password: 123456
+
+cloud-sdk:
+  mqtt:
+    # Topics that need to be subscribed when initially connecting to mqtt, multiple topics are divided by ",".
+    inbound-topic: sys/product/+/status,thing/product/+/requests
+
+url:
+  manage:
+    prefix: manage
+    version: /api/v1
+  map:
+    prefix: map
+    version: /api/v1
+  media:
+    prefix: media
+    version: /api/v1
+  wayline:
+    prefix: wayline
+    version: /api/v1
+  storage:
+    prefix: storage
+    version: /api/v1
+  control:
+    prefix: control
+    version: /api/v1
+
+# Tutorial: https://www.alibabacloud.com/help/en/object-storage-service/latest/use-a-temporary-credential-provided-by-sts-to-access-oss
+oss:
+  enable: true
+  provider: MINIO 
+  endpoint: http://192.168.1.5:9000 
+  access-key: ROOTUSER
+  secret-key: CHANGEME123
+  expire: 3600
+  region: us-east-1 
+  role-session-name: cloudApi
+  role-arn: ""
+  bucket: crack-detection
+  object-dir-prefix: drone-auto-upload
+
+
+#oss:
+#  enable: true
+#  provider: aws
+#  endpoint: https://s3.us-east-1.amazonaws.com
+#  access-key:
+#  secret-key:
+#  expire: 3600
+#  region: us-east-1
+#  role-session-name: cloudApi
+#  role-arn:
+#  bucket: cloudapi-bucket
+#  object-dir-prefix: wayline
+
+#oss:
+#  enable: true
+#  provider: minio
+#  endpoint: http://192.168.1.1:9000
+#  access-key: minioadmin
+#  secret-key: minioadmin
+#  bucket: cloud-bucket
+#  expire: 3600
+#  region: us-east-1
+#  object-dir-prefix: wayline
+
+logging:
+  level:
+    com.dji: debug
+  file:
+    name: logs/192.168.1.5.log  localhost
+
+ntp:
+  server:
+    host: Google.mzr.me
+
+# To create a license for an application: https://developer.dji.com/user/apps/#all
+cloud-api:
+  app:
+    id: 155772
+    key: 22b0892c64036a75876bfac00d00cd6
+    license: QQyAn2xrL6QwTUsUuYWVrLQPUIor77xjBSEWh7zazMYhzk0yDttzmZxpEDOTPx250Nlv6oJJWtYn6OPvX7RXskwXhGo1BJkO/+M2nwcUFfD0w8SRu94c+B1L40ppJxeGlarr2nkxvzmbS88R0RHnXcruQHQW94Wu8182C8z/ixQ=
+
+livestream:
+  url:
+    # It is recommended to use a program to create Token. https://github.com/AgoraIO/Tools/blob/master/DynamicKey/AgoraDynamicKey/java/src/main/java/io/agora/media/RtcTokenBuilder2.java
+    # RTMP  Note: This IP is the address of the streaming server. If you want to see livestream on web page, you need to convert the RTMP stream to WebRTC stream.
+    rtmp:
+      url: rtmp://192.168.1.5/live/60856983 # Example: 'rtmp://192.168.1.1/live/'
+    rtsp:
+      username: root
+      password: root
+      port: 8554
+    # Webrtc: Only supports using whip standard
+    whip:
+      url: Please enter the rtmp access address. #  Example：http://192.168.1.1:1985/rtc/v1/whip/?app=live&stream=
+
+
+python:
+  host: 192.168.1.5
+  port: 8000
