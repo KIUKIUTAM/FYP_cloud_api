@@ -12,14 +12,20 @@ change the ip to your localhost<br>
 put the model in to FYP_cloud_api\cloud_api\source\python\app\model <br>
 https://drive.google.com/file/d/1ykycizTj5vJ-9QyvQrGH4miwfctzC_X1/view?usp=sharing
 
-
+minio config:
+*change credential key
+*bucket name: crack-detection
+(set public)
+docker-compose\php\src\fyp_frontend\dashboard\_main\minio_config.inc.php
+docker-compose\python\app\app.py
+docker-compose\php\src\fyp_frontend\dashboard\_main\images_upload.inc.php
 
 
 open docker :<br>
 
 
 
-docker compose build
+docker compose build <br>
 docker compose up -d
 <br>
 
