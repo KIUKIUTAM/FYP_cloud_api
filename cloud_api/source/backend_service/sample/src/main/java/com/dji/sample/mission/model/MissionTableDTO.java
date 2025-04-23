@@ -23,6 +23,8 @@ public class MissionTableDTO {
     private LocalDateTime endTime;
     private String status;
     private String notes;
+    private String address;
+    private String detectType;
 
 
 

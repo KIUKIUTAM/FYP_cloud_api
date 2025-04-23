@@ -4,7 +4,7 @@ import com.dji.sdk.cloudapi.media.*;
 import com.dji.sdk.cloudapi.media.api.IHttpMediaService;
 import com.dji.sdk.common.HttpResultResponse;
 import com.dji.sample.media.service.IMediaService;
-import com.dji.sample.mission.service.IMissionService;
+import com.dji.sample.mission.service.MissionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +27,7 @@ public class MediaController implements IHttpMediaService {
     private IMediaService mediaService;
 
     @Autowired
-    private IMissionService missionService;
+    private MissionService missionService;
 
     @Autowired
     private delectSendService delectSendService;
@@ -58,7 +58,8 @@ public class MediaController implements IHttpMediaService {
         log.info("Media upload callback: {}", request);
         mediaService.saveMediaMissionRef(mediaService.convert2callbackRequest(request));
         String missionId = String.valueOf(missionService.getMissionIdByDeviceSn(request.getExt().getSn()));
-        delectSendService.sendDelectData(request.getName(), missionId, "crack");
+        String model = String.valueOf(missionService.getDetectTypeByDeviceSn(request.getExt().getSn()));
+        delectSendService.sendDelectData(request.getName(), missionId, model);
 
         mediaService.saveMediaFile(workspaceId, request);
         return HttpResultResponse.success(request.getObjectKey());

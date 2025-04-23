@@ -13,7 +13,7 @@ import com.dji.sample.media.service.IFileService;
 import com.dji.sample.media.service.IMediaRedisService;
 import com.dji.sample.media.service.IMediaService;
 import com.dji.sample.mission.model.MediaMissionRefEntity;
-import com.dji.sample.mission.service.IMissionService;
+import com.dji.sample.mission.service.MissionService;
 import com.dji.sample.mission.service.MediaMissionRefService;
 import com.dji.sample.wayline.service.IWaylineJobService;
 import com.dji.sdk.cloudapi.media.*;
@@ -67,7 +67,7 @@ public class MediaServiceImpl extends AbstractMediaService implements IMediaServ
     private MediaMissionRefService mediaMissionRefService;
 
     @Autowired
-    private IMissionService missionService;
+    private MissionService missionService;
 
     @Override
     public Boolean fastUpload(String workspaceId, String fingerprint) {

@@ -14,4 +14,5 @@ public interface MissionService {
     String getMissionPathByDeviceSn(String deviceSn);
     void updateMissionStatusAndDeviceSn(MissionTableEntity mission);
     Integer getMissionIdByDeviceSn(String deviceSn);
+    String getDetectTypeByDeviceSn(String deviceSn);
 }

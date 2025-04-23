@@ -24,4 +24,7 @@ public interface IMissionMapper extends BaseMapper<MissionTableEntity> {
     @Select("SELECT mission_id FROM missiontable WHERE device_sn = #{deviceSn}")
     Integer getMissionIdByDeviceSn(String deviceSn);
 
+    @Select("SELECT detect_type FROM missiontable WHERE device_sn = #{deviceSn}")
+    String getDetectTypeByDeviceSn(String deviceSn);
+
 }

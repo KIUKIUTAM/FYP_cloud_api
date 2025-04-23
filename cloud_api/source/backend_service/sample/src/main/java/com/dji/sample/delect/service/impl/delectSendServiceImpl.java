@@ -40,6 +40,9 @@ public class delectSendServiceImpl implements delectSendService {
         if(mission_id == null || mission_id.isEmpty()) {
             mission_id = "0";
         }
+        if(model == null || model.isEmpty()) {
+            model = "crack";
+        }
 
         // Use MultiValueMap for form data
         MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();

@@ -50,4 +50,10 @@ public class MissionTableEntity implements Serializable {
 
     @TableField(value = "notes")
     private String notes;
+
+    @TableField(value = "address")
+    private String address;
+
+    @TableField(value = "detect_type")
+    private String detectType;
 }

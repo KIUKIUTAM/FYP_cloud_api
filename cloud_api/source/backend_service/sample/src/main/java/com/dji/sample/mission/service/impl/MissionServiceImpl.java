@@ -7,10 +7,9 @@ import org.springframework.stereotype.Service;
 import com.dji.sample.mission.dao.IMissionMapper;
 import com.dji.sample.mission.model.MissionTableEntity;
 import com.dji.sample.mission.service.MissionService;
-import com.dji.sample.mission.service.IMissionService;
 
 @Service
-public class MissionServiceImpl implements MissionService, IMissionService {
+public class MissionServiceImpl implements MissionService {
 
     @Autowired
     private IMissionMapper mapper;
@@ -62,5 +61,13 @@ public class MissionServiceImpl implements MissionService, IMissionService {
             return null; // Default value if deviceSn is not provided
         }
         return mapper.getMissionIdByDeviceSn(deviceSn);
+    }
+
+    @Override
+    public String getDetectTypeByDeviceSn(String deviceSn) {
+        if(deviceSn == null || deviceSn.isEmpty()) {
+            return null; // Default value if deviceSn is not provided
+        }
+        return mapper.getDetectTypeByDeviceSn(deviceSn);
     }
 }
