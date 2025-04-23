@@ -104,6 +104,7 @@ import { getMissionList, setMissionCompleted, setMissionDeviceSn, setMissionPlan
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import { ref, onMounted, nextTick } from 'vue'
+import { getDeviceTopo } from '/@/api/manage'
 
 const store = useMyStore()
 
@@ -130,13 +131,6 @@ const availableMissions = ref<Mission[]>([
 
 // Initialize drones array with a sample drone
 const drones = ref<Drone[]>([
-  // Sample drone that's always present
-  {
-    sn: 'SAMPLE-DRONE-001',
-    name: 'Sample Drone',
-    selectedMission: null,
-    lastUpdate: new Date().toLocaleString()
-  }
 ])
 
 // Track which drones have pending mission changes
@@ -169,27 +163,38 @@ const fetchMissions = async () => {
 
 // Populate drones array from the deviceInfo in the store and fetch missions
 onMounted(async () => {
-  // Fetch missions from API
-  await fetchMissions()
-
-  // If we have the main visible drone, add it first
-  if (store.state.osdVisible && store.state.osdVisible.sn) {
-    drones.value.push({
-      name: store.state.osdVisible.callsign || 'Main Drone',
-      sn: store.state.osdVisible.sn,
-      selectedMission: null,
-      lastUpdate: new Date().toLocaleString()
-    })
+  // 1. 取得設備清單（如 tsa.vue）
+  const workspaceId = localStorage.getItem(ELocalStorageKey.WorkspaceId) || ''
+  if (workspaceId) {
+    try {
+      const res = await getDeviceTopo(workspaceId)
+      if (res.code === 0 && Array.isArray(res.data)) {
+        // 清空 deviceInfo
+        Object.keys(store.state.deviceState.deviceInfo).forEach(sn => {
+          delete store.state.deviceState.deviceInfo[sn]
+        })
+        // 填入每一台 drone 的 children
+        res.data.forEach((gateway: any) => {
+          const child = gateway.children
+          if (child && child.device_sn) {
+            store.commit('SET_DEVICE_INFO', {
+              sn: child.device_sn,
+              host: child
+            })
+          }
+        })
+      }
+    } catch (e) {
+      console.error('Failed to fetch device topo:', e)
+    }
   }
 
-  // Loop through all devices in deviceInfo
+  drones.value = []
+  await fetchMissions()
+
+  // 2. 組合 drones（和 tsa.vue 一致，根據 deviceInfo）
   const deviceInfoEntries = Object.entries(store.state.deviceState.deviceInfo)
   for (const [sn, deviceData] of deviceInfoEntries) {
-    // Skip if this device is already in the list (from osdVisible)
-    if (drones.value.some(drone => drone.sn === sn)) {
-      continue
-    }
-
     drones.value.push({
       name: `Drone ${drones.value.length + 1}`,
       sn: sn,
