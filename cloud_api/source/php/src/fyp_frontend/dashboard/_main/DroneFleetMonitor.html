@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Fleet Monitor</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #22c55e;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            background-color: #1e40af;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .sidebar {
+            grid-column: 1;
+            grid-row: 2;
+            background-color: #f8fafc;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+            padding: 15px;
+        }
+
+        .main-content {
+            grid-column: 2;
+            grid-row: 2;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            border: none;
+        }
+
+        .card-header {
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 15px;
+            background-color: rgba(0,0,0,0.02);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-connected {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .badge-disconnected {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .badge-living {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .device-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .device-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .device-item:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+
+        .device-item.active {
+            background-color: rgba(37, 99, 235, 0.1);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .detail-section {
+            margin-top: 5px;
+            font-size: 0.85rem;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .detail-label {
+            color: #6b7280;
+        }
+
+        .detail-value {
+            font-weight: 500;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .toast-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1100;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .drone-selector {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            max-width: 300px;
+        }
+
+        .telemetry-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            max-width: 350px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .telemetry-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .telemetry-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+        .telemetry-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .battery-indicator {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+
+        .battery-level {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .battery-high {
+            background-color: var(--success-color);
+        }
+
+        .battery-medium {
+            background-color: var(--warning-color);
+        }
+
+        .battery-low {
+            background-color: var(--error-color);
+        }
+
+        #error-message {
+            color: var(--error-color);
+            padding: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid var(--primary-color);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .collapsible-section {
+            margin-top: 10px;
+        }
+
+        .collapsible-header {
+            background-color: #f1f5f9;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .collapsible-content {
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin-top: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            font-size: 0.8rem;
+        }
+
+        /* Path styles for different drones */
+        .drone-path-0 { stroke: #FF5733; }
+        .drone-path-1 { stroke: #33FF57; }
+        .drone-path-2 { stroke: #3357FF; }
+        .drone-path-3 { stroke: #FF33F5; }
+        .drone-path-4 { stroke: #F5FF33; }
+
+        /* Direction arrow styles */
+        .direction-arrow {
+            stroke: #FFFFFF;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-drone-fill fs-4 me-2"></i>
+                <h4 class="mb-0">Drone Fleet Monitor</h4>
+            </div>
+            <div>
+                <span class="badge bg-light text-dark" id="connection-status">
+                    <i class="bi bi-wifi me-1"></i>Connecting...
+                </span>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <!-- Platform Info -->
+            <div class="card" id="platform-info">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Platform Info</span>
+                    <i class="bi bi-info-circle-fill text-primary"></i>
+                </div>
+                <div class="card-body" id="platform-content">
+                    <div class="loading"></div>
+                </div>
+            </div>
+
+            <!-- Connected Devices -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Connected Devices</span>
+                    <span class="badge bg-primary" id="device-count">0</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="device-list" id="device-list">
+                        <div class="text-center py-4">
+                            <div class="loading"></div>
+                            <p class="text-muted mt-2">Loading devices...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WebSocket Messages -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>WebSocket Messages</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="clear-messages">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body p-2">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="auto-scroll" checked>
+                        <label class="form-check-label" for="auto-scroll">Auto-scroll</label>
+                    </div>
+                    <div id="ws-messages" style="height: 200px; overflow-y: auto; font-size: 0.8rem; font-family: monospace;">
+                        <div class="text-center text-muted">Waiting for messages...</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content (Map) -->
+        <main class="main-content">
+            <div id="map"></div>
+
+            <!-- Loading Overlay -->
+            <div id="loading-overlay" class="map-overlay">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="mt-2">Loading map...</div>
+                </div>
+            </div>
+
+            <!-- Drone Selector -->
+            <div class="drone-selector" id="drone-selector">
+                <h6 class="mb-2">Select Drone</h6>
+                <select class="form-select mb-2" id="drone-select">
+                    <option value="">All Drones</option>
+                </select>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="show-only-selected" checked>
+                    <label class="form-check-label" for="show-only-selected">Show only selected drone path</label>
+                </div>
+            </div>
+
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <div class="d-flex flex-column gap-2">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="auto-center" checked>
+                        <label class="form-check-label" for="auto-center">Auto Center</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="show-path" checked>
+                        <label class="form-check-label" for="show-path">Show Path</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="show-direction" checked>
+                        <label class="form-check-label" for="show-direction">Show Direction</label>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger mt-2" id="clear-path">
+                        <i class="bi bi-trash me-1"></i>Clear Path
+                    </button>
+                </div>
+            </div>
+
+            <!-- Telemetry Panel (initially hidden) -->
+            <div class="telemetry-panel d-none" id="telemetry-panel">
+                <h6 class="mb-3 d-flex justify-content-between align-items-center">
+                    <span id="telemetry-title">Drone Telemetry</span>
+                    <span class="badge bg-success" id="telemetry-status">Connected</span>
+                </h6>
+
+                <div class="telemetry-grid">
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Altitude</span>
+                        <span class="telemetry-value" id="altitude">-- m</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Speed</span>
+                        <span class="telemetry-value" id="speed">-- m/s</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Heading</span>
+                        <span class="telemetry-value" id="heading">-- °</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Distance</span>
+                        <span class="telemetry-value" id="distance">-- m</span>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="telemetry-label">Battery</span>
+                        <span class="telemetry-value" id="battery">--%</span>
+                    </div>
+                    <div class="battery-indicator">
+                        <div class="battery-level battery-high" id="battery-level" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible('raw-data')">
+                        <span>Raw Data</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="collapsible-content d-none" id="raw-data">
+                        <pre id="raw-data-content">No data available</pre>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Toast Container for Notifications -->
+        <div class="toast-container">
+            <div id="error-toast" class="toast align-items-center text-white bg-danger border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <span id="error-message"></span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Google Maps API -->
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDX8QbtE2fqUXdCEZ5w5X7lKi9lGUa3zgw&callback=initMap"></script>
+
+    <script>
+        // Config
+        const config = {
+            baseURL: 'http://172.18.37.49:6789/manage/api/v1/',
+            websocketURL: 'ws://172.18.37.49:6789/api/v1/ws',
+            mapCenter: { lat: 22.2718210422761, lng: 114.23993910832633 }, // IVE-CW
+            mapZoom: 18
+        };
+        
+        // Constants from enums.js
+        const EStatusValue = {
+            CONNECTED: 'Connected',
+            DISCONNECT: 'Disconnect',
+            LIVING: 'Living'
+        };
+
+        const DOMAIN = {
+            DRONE: '0',
+            PAYLOAD: '1',
+            RC: '2',
+            DOCK: '3'
+        };
+
+        const EBizCode = {
+            DeviceOsd: 'device_osd',
+            GatewayOsd: 'gateway_osd',
+            DeviceOnline: 'device_online',
+            DeviceOffline: 'device_offline'
+        };
+
+        // Add enum for localStorage keys
+        const ELocalStorageKey = {
+            Token: 'x-auth-token',
+            WorkspaceId: 'workspace_id',
+            Username: 'username',
+            UserId: 'user_id',
+            Flag: 'flag'
+        };
+
+        const EUserType = {
+            Web: 1,
+            Pilot: 2
+        };
+
+        // Store state
+        let devices = [];
+        let wsConnection = null;
+        let map, markers = {}, paths = {}, directionArrows = {}, selectedDeviceSN = null;
+        let toast;
+        let deviceData = {}; // Store latest data for each device
+        let wsMessages = []; // Store WebSocket messages
+        const MAX_WS_MESSAGES = 100; // Maximum number of messages to keep
+        let droneColors = {}; // Map drone SN to color index
+        let colorIndex = 0; // Current color index
+        let droneList = []; // List of drone SNs
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize toast
+            toast = new bootstrap.Toast(document.getElementById('error-toast'));
+            
+            // Set up event listeners
+            document.getElementById('clear-messages').addEventListener('click', clearWebSocketMessages);
+            document.getElementById('clear-path').addEventListener('click', clearAllPaths);
+            document.getElementById('show-path').addEventListener('change', toggleAllPaths);
+            document.getElementById('show-direction').addEventListener('change', toggleDirectionArrows);
+            document.getElementById('drone-select').addEventListener('change', handleDroneSelection);
+            document.getElementById('show-only-selected').addEventListener('change', toggleSelectedDronePath);
+            
+            // Start the application
+            initializeApp();
+        });
+
+        // Utility functions
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            document.getElementById('error-toast').classList.add('show');
+            setTimeout(() => {
+                document.getElementById('error-toast').classList.remove('show');
+            }, 5000);
+        }
+
+        function getDomainLabel(domain) {
+            switch (domain) {
+                case DOMAIN.DRONE: return 'Drone';
+                case DOMAIN.PAYLOAD: return 'Payload';
+                case DOMAIN.RC: return 'Remote Control';
+                case DOMAIN.DOCK: return 'Dock';
+                default: return 'Unknown';
+            }
+        }
+
+        function getDomainIcon(domain) {
+            switch (domain) {
+                case DOMAIN.DRONE: return 'bi-airplane';
+                case DOMAIN.PAYLOAD: return 'bi-camera';
+                case DOMAIN.RC: return 'bi-controller';
+                case DOMAIN.DOCK: return 'bi-house';
+                default: return 'bi-question-circle';
+            }
+        }
+
+        function getStatusBadgeClass(status) {
+            switch (status) {
+                case EStatusValue.CONNECTED: return 'badge-connected';
+                case EStatusValue.LIVING: return 'badge-living';
+                default: return 'badge-disconnected';
+            }
+        }
+
+        function toggleCollapsible(id) {
+            const content = document.getElementById(id);
+            content.classList.toggle('d-none');
+            const icon = content.previousElementSibling.querySelector('i');
+            icon.classList.toggle('bi-chevron-down');
+            icon.classList.toggle('bi-chevron-up');
+        }
+
+        // API calls
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem(ELocalStorageKey.Token);
+            const headers = {
+                'Content-Type': 'application/json',
+                'x-auth-token': token,
+                ...options.headers
+            };
+
+            try {
+                const response = await fetch(url, { ...options, headers });
+                const data = await response.json();
+                
+                // Log raw API response
+                console.log('API Response:', {
+                    url: url,
+                    data: data
+                });
+                
+                if (data.code === 401) {
+                    localStorage.clear();
+                    window.location.reload();
+                    return null;
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                showError(`API Error: ${error.message}`);
+                throw error;
+            }
+        }
+
+        async function login() {
+            const loginResponse = await fetchWithAuth(`${config.baseURL}login`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: 'adminPC',
+                    password: 'adminPC',
+                    flag: EUserType.Web
+                })
+            });
+
+            console.log('Login Response:', loginResponse);
+
+            if (loginResponse.code === 0) {
+                localStorage.setItem(ELocalStorageKey.Token, loginResponse.data.access_token);
+                localStorage.setItem(ELocalStorageKey.WorkspaceId, loginResponse.data.workspace_id);
+                localStorage.setItem(ELocalStorageKey.Username, loginResponse.data.username);
+                localStorage.setItem(ELocalStorageKey.UserId, loginResponse.data.user_id);
+                localStorage.setItem(ELocalStorageKey.Flag, EUserType.Web.toString());
+                return true;
+            }
+            return false;
+        }
+
+        // GetDevices function
+        async function getDevices() {
+            const workspaceId = localStorage.getItem(ELocalStorageKey.WorkspaceId);
+            if (!workspaceId) {
+                console.log('No workspace ID found in localStorage');
+                return;
+            }
+            
+            try {
+                const response = await fetchWithAuth(
+                    `${config.baseURL}devices/${workspaceId}/devices?page=1&page_size=100&type=sub-device`
+                );
+                
+                // Log complete device response
+                console.log('Device API Response:', response);
+                
+                if (response.code === 0) {
+                    devices = response.data.list || [];
+                    updateDeviceList();
+                    updateDeviceCount();
+                    updateDroneSelector();
+                }
+            } catch (error) {
+                console.error('Error fetching devices:', error);
+                devices = [];
+                updateDeviceList();
+                updateDeviceCount();
+                updateDroneSelector();
+            }
+        }
+
+        // Platform info logging
+        async function getPlatformInfo() {
+            const response = await fetchWithAuth(`${config.baseURL}workspaces/current`);
+            console.log('Platform Info Response:', response);
+            
+            if (response.code === 0) {
+                updatePlatformInfo(response.data);
+            }
+        }
+
+        // UI updates
+        function updatePlatformInfo(data) {
+            document.getElementById('platform-content').innerHTML = `
+                <div class="mb-3">
+                    <div class="detail-item">
+                        <span class="detail-label">Workspace:</span>
+                        <span class="detail-value">${data.workspace_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Description:</span>
+                        <span class="detail-value">${data.workspace_desc || '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Platform Name:</span>
+                        <span class="detail-value">${data.platform_name || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Workspace ID:</span>
+                        <span class="detail-value text-muted" style="font-size: 0.7rem;">${data.workspace_id || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Bind Code:</span>
+                        <span class="detail-value">${data.bind_code || 'N/A'}</span>
+                    </div>
+                </div>
+                
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible('platform-raw-data')">
+                        <span>Raw Data</span>
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="collapsible-content d-none" id="platform-raw-data">
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateDeviceCount() {
+            document.getElementById('device-count').textContent = devices.length;
+        }
+
+        function updateDeviceList() {
+            const deviceList = document.getElementById('device-list');
+            
+            if (!Array.isArray(devices) || devices.length === 0) {
+                deviceList.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-muted">No devices currently connected</p>
+                    </div>
+                `;
+                return;
+            }
+
+            deviceList.innerHTML = devices.map(device => `
+                <div class="device-item ${selectedDeviceSN === device.device_sn ? 'active' : ''}" 
+                     data-sn="${device.device_sn}" 
+                     onclick="selectDevice('${device.device_sn}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi ${getDomainIcon(device.domain)} me-2"></i>
+                            <span>${device.device_sn || 'Unknown Device'}</span>
+                        </div>
+                        <span class="badge ${getStatusBadgeClass(device.status)}">
+                            ${device.status ? EStatusValue.CONNECTED : EStatusValue.DISCONNECT}
+                        </span>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-item">
+                            <span class="detail-label">Type:</span>
+                            <span class="detail-value">${getDomainLabel(device.domain)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Last Update:</span>
+                            <span class="detail-value">${device.lastUpdate || '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+                // Update drone selector dropdown
+                function updateDroneSelector() {
+            const droneSelect = document.getElementById('drone-select');
+            
+            // Clear current options except the first one
+            while (droneSelect.options.length > 1) {
+                droneSelect.remove(1);
+            }
+            
+            // Filter only drone devices
+            const droneDevices = devices.filter(device => device.domain === DOMAIN.DRONE);
+            droneList = droneDevices.map(drone => drone.device_sn);
+            
+            // Add drone options
+            droneDevices.forEach((drone, index) => {
+                const option = document.createElement('option');
+                option.value = drone.device_sn;
+                option.textContent = `Drone ${drone.device_sn}`;
+                droneSelect.appendChild(option);
+                
+                // Assign a color to this drone if it doesn't have one
+                if (!droneColors[drone.device_sn]) {
+                    droneColors[drone.device_sn] = colorIndex % 5; // 5 different colors
+                    colorIndex++;
+                }
+            });
+            
+            // Hide selector if no drones
+            document.getElementById('drone-selector').style.display = droneDevices.length > 0 ? 'block' : 'none';
+        }
+        
+        // Handle drone selection change
+        function handleDroneSelection() {
+            const selectedDrone = document.getElementById('drone-select').value;
+            
+            if (selectedDrone) {
+                // Select specific drone
+                selectDevice(selectedDrone);
+                
+                // If show only selected is checked, hide other paths
+                if (document.getElementById('show-only-selected').checked) {
+                    toggleSelectedDronePath();
+                }
+            } else {
+                // Show all paths if "All Drones" is selected
+                Object.keys(paths).forEach(sn => {
+                    if (paths[sn]) {
+                        paths[sn].setVisible(document.getElementById('show-path').checked);
+                    }
+                });
+            }
+        }
+        
+        // Toggle showing only the selected drone's path
+        function toggleSelectedDronePath() {
+            const selectedDrone = document.getElementById('drone-select').value;
+            const showOnlySelected = document.getElementById('show-only-selected').checked;
+            const showPath = document.getElementById('show-path').checked;
+            
+            if (!showPath) {
+                // If paths are hidden, respect that setting
+                Object.values(paths).forEach(path => {
+                    path.setVisible(false);
+                });
+                return;
+            }
+            
+            if (showOnlySelected && selectedDrone) {
+                // Show only the selected drone's path
+                Object.keys(paths).forEach(sn => {
+                    if (paths[sn]) {
+                        paths[sn].setVisible(sn === selectedDrone);
+                    }
+                });
+            } else {
+                // Show all paths
+                Object.values(paths).forEach(path => {
+                    path.setVisible(true);
+                });
+            }
+        }
+
+        // WebSocket handling
+        function setupWebSocket() {
+            const token = localStorage.getItem(ELocalStorageKey.Token);
+            const ws = new WebSocket(`${config.websocketURL}?x-auth-token=${encodeURIComponent(token)}`);
+            
+            ws.onopen = () => {
+                console.log('WebSocket Connected');
+                document.getElementById('connection-status').innerHTML = `
+                    <i class="bi bi-wifi me-1"></i>Connected
+                `;
+                document.getElementById('connection-status').classList.remove('bg-light', 'text-dark');
+                document.getElementById('connection-status').classList.add('bg-success', 'text-white');
+            };
+
+            ws.onmessage = (event) => {
+                // Log raw WebSocket message
+                console.log('WebSocket Raw Message:', event.data);
+                
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('WebSocket Parsed Message:', data);
+                    
+                    // Add to message log
+                    addWebSocketMessage(data);
+                    
+                    // Handle the message
+                    handleWebSocketMessage(data);
+                } catch (error) {
+                    console.error('WebSocket Parse Error:', error);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket Disconnected');
+                document.getElementById('connection-status').innerHTML = `
+                    <i class="bi bi-wifi-off me-1"></i>Disconnected
+                `;
+                document.getElementById('connection-status').classList.remove('bg-success', 'text-white');
+                document.getElementById('connection-status').classList.add('bg-danger', 'text-white');
+                setTimeout(setupWebSocket, 5000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                document.getElementById('connection-status').innerHTML = `
+                    <i class="bi bi-exclamation-triangle me-1"></i>Error
+                `;
+                document.getElementById('connection-status').classList.remove('bg-success', 'text-white');
+                document.getElementById('connection-status').classList.add('bg-warning', 'text-dark');
+            };
+
+            wsConnection = ws;
+        }
+
+        function addWebSocketMessage(data) {
+            const timestamp = new Date().toLocaleTimeString();
+            const messageType = data.biz_code || 'unknown';
+            
+            // Create message object
+            const message = {
+                timestamp,
+                type: messageType,
+                data
+            };
+            
+            // Add to message array and update UI
+            wsMessages.push(message);
+            
+            // Keep only the most recent messages
+            if (wsMessages.length > MAX_WS_MESSAGES) {
+                wsMessages = wsMessages.slice(-MAX_WS_MESSAGES);
+            }
+            
+            updateWebSocketMessages();
+        }
+        
+        function updateWebSocketMessages() {
+            const messagesContainer = document.getElementById('ws-messages');
+            messagesContainer.innerHTML = wsMessages.map(message => `
+                <div class="mb-1 ${getMessageTypeClass(message.type)}">
+                    <small class="text-muted">[${message.timestamp}]</small>
+                    <span class="ms-1 badge ${getMessageTypeBadge(message.type)}">${message.type}</span>
+                    <span>${getSummary(message.data)}</span>
+                </div>
+            `).join('');
+            
+            // Auto-scroll to bottom if enabled
+            if (document.getElementById('auto-scroll').checked) {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+        
+        function getMessageTypeClass(type) {
+            switch (type) {
+                case EBizCode.DeviceOsd: return 'text-primary';
+                case EBizCode.GatewayOsd: return 'text-success';
+                case EBizCode.DeviceOnline: return 'text-success';
+                case EBizCode.DeviceOffline: return 'text-danger';
+                default: return '';
+            }
+        }
+        
+        function getMessageTypeBadge(type) {
+            switch (type) {
+                case EBizCode.DeviceOsd: return 'bg-primary';
+                case EBizCode.GatewayOsd: return 'bg-success';
+                case EBizCode.DeviceOnline: return 'bg-success';
+                case EBizCode.DeviceOffline: return 'bg-danger';
+                default: return 'bg-secondary';
+            }
+        }
+        
+        function getSummary(data) {
+            // For WebSocket messages, the SN is in data.data.sn
+            if (data && data.data && data.data.sn) {
+                return `SN: ${data.data.sn}`;
+            }
+            return 'No SN';
+        }
+        
+        function clearWebSocketMessages() {
+            wsMessages = [];
+            updateWebSocketMessages();
+        }
+
+        function handleWebSocketMessage(data) {
+            if (!data) {
+                console.warn('Received empty WebSocket message');
+                return;
+            }
+
+            try {
+                switch (data.biz_code) {
+                    case EBizCode.DeviceOsd:
+                        if (data.data && data.data.sn) {
+                            // Store device type info
+                            data.data._deviceType = 'drone';
+                            updateDeviceData(data.data.sn, data.data);
+                            updateDeviceOnMap(data.data.sn, data.data);
+                            
+                            // Add to devices list if not already there
+                            addDeviceIfNotExists(data.data.sn, DOMAIN.DRONE);
+                            
+                            // Update drone selector if needed
+                            if (!droneList.includes(data.data.sn)) {
+                                updateDroneSelector();
+                            }
+                        }
+                        break;
+                        
+                    case EBizCode.GatewayOsd:
+                        if (data.data && data.data.sn) {
+                            // Store device type info
+                            data.data._deviceType = 'controller';
+                            updateDeviceData(data.data.sn, data.data);
+                            updateDeviceOnMap(data.data.sn, data.data);
+                            
+                            // Add to devices list if not already there
+                            addDeviceIfNotExists(data.data.sn, DOMAIN.RC);
+                        }
+                        break;
+                        
+                    case EBizCode.DeviceOnline:
+                        if (data.data && data.data.sn) {
+                            updateDeviceStatus(data.data.sn, true);
+                        }
+                        break;
+                        
+                    case EBizCode.DeviceOffline:
+                        if (data.data && data.data.sn) {
+                            updateDeviceStatus(data.data.sn, false);
+                        }
+                        break;
+                        
+                    default:
+                        console.log('Unhandled WebSocket message type:', data.biz_code);
+                }
+            } catch (error) {
+                console.error('Error handling WebSocket message:', error);
+            }
+        }
+
+        // Helper function to add a device to the devices list if it doesn't already exist
+        function addDeviceIfNotExists(sn, domain) {
+            const deviceIndex = devices.findIndex(d => d.device_sn === sn);
+            if (deviceIndex < 0) {
+                // Device doesn't exist in our list, add it
+                devices.push({
+                    device_sn: sn,
+                    domain: domain,
+                    status: EStatusValue.CONNECTED,
+                    lastUpdate: new Date().toLocaleString()
+                });
+                updateDeviceList();
+                updateDeviceCount();
+                
+                // Update drone selector if it's a drone
+                if (domain === DOMAIN.DRONE) {
+                    updateDroneSelector();
+                }
+            }
+        }
+
+        function updateDeviceData(sn, newData) {
+            // Store the data
+            deviceData[sn] = newData;
+            
+            // Update UI if this is the selected device
+            if (selectedDeviceSN === sn) {
+                updateTelemetryPanel(newData);
+            }
+            
+            // Update device in list if it exists
+            const deviceIndex = devices.findIndex(d => d.device_sn === sn);
+            if (deviceIndex >= 0) {
+                devices[deviceIndex].lastUpdate = new Date().toLocaleString();
+                updateDeviceList();
+            }
+        }
+        
+        function updateDeviceStatus(sn, isOnline) {
+            const deviceIndex = devices.findIndex(d => d.device_sn === sn);
+            if (deviceIndex >= 0) {
+                devices[deviceIndex].status = isOnline ? EStatusValue.CONNECTED : EStatusValue.DISCONNECT;
+                devices[deviceIndex].lastUpdate = new Date().toLocaleString();
+                updateDeviceList();
+            }
+        }
+
+        // Google Maps integration
+        function initMap() {
+            // Hide loading overlay
+            document.getElementById('loading-overlay').style.display = 'none';
+
+            // Initialize map
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: config.mapZoom,
+                center: config.mapCenter,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                disableDefaultUI: false,
+                zoomControl: true,
+                mapTypeControl: true,
+                scaleControl: true,
+                streetViewControl: false,
+                rotateControl: true,
+                fullscreenControl: true
+            });
+
+            // Add home marker at the center
+            new google.maps.Marker({
+                position: config.mapCenter,
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: '#4CAF50',
+                    fillOpacity: 0.7,
+                    strokeColor: '#388E3C',
+                    strokeWeight: 2
+                },
+                title: 'Home Position'
+            });
+            
+            // Initialize devices on map if we have any
+            devices.forEach(device => {
+                if (deviceData[device.device_sn]) {
+                    updateDeviceOnMap(device.device_sn, deviceData[device.device_sn]);
+                }
+            });
+        }
+        
+        function updateDeviceOnMap(sn, data) {
+            // Skip if no map
+            if (!map) return;
+            
+            // Get position and device type
+            let position;
+            let deviceType;
+            let heading = 0;
+            
+            if (data._deviceType === 'drone') {
+                // This is a drone
+                deviceType = 'drone';
+                
+                // For drones, check if we have valid position data
+                const host = data.host;
+                if (host && host.latitude !== undefined && host.longitude !== undefined) {
+                    position = {
+                        lat: host.latitude,
+                        lng: host.longitude
+                    };
+                    
+                    // Get heading for direction arrow
+                    heading = host.attitude_head || 0;
+                } else {
+                    console.log("Drone without position data:", sn);
+                    return; // No position data
+                }
+            } else if (data._deviceType === 'controller') {
+                // This is a controller
+                deviceType = 'controller';
+                
+                const host = data.host;
+                if (host && host.latitude !== undefined && host.longitude !== undefined) {
+                    position = {
+                        lat: host.latitude,
+                        lng: host.longitude
+                    };
+                } else {
+                    return; // No position data
+                }
+            } else {
+                // Try to determine type from data structure
+                const host = data.host;
+                if (!host) return;
+                
+                if (host.battery && host.attitude_head !== undefined) {
+                    deviceType = 'drone';
+                    heading = host.attitude_head || 0;
+                    if (host.latitude !== undefined && host.longitude !== undefined) {
+                        position = {
+                            lat: host.latitude,
+                            lng: host.longitude
+                        };
+                    } else {
+                        console.log("Drone without position data:", sn);
+                        return;
+                    }
+                } else if (host.latitude !== undefined && host.longitude !== undefined) {
+                    deviceType = 'controller';
+                    position = {
+                        lat: host.latitude,
+                        lng: host.longitude
+                    };
+                } else {
+                    console.log("Unknown device type or missing position:", sn);
+                    return;
+                }
+            }
+            
+            // Skip if invalid position (0,0 is valid in some cases, but usually indicates no GPS fix)
+            if (position && (isNaN(position.lat) || isNaN(position.lng))) {
+                console.log("Invalid position for device:", sn, position);
+                return;
+            }
+            
+            // For testing purposes, if position is (0,0) but we want to show the device anyway,
+            // place it near the map center with a small offset
+            if (position && position.lat === 0 && position.lng === 0) {
+                // Use map center with a small offset for visualization
+                position = {
+                    lat: config.mapCenter.lat + (Math.random() * 0.001 - 0.0005),
+                    lng: config.mapCenter.lng + (Math.random() * 0.001 - 0.0005)
+                };
+                console.log("Using test position for device with 0,0 coordinates:", sn);
+            }
+            
+            // Create or update marker
+            if (!markers[sn]) {
+                let markerIcon;
+                
+                if (deviceType === 'drone') {
+                    // Improved drone icon (aircraft shape)
+                    markerIcon = {
+                        path: 'M 0,0 m -8,0 l 16,0 l 4,14 l -4,0 l 0,-4 l -16,0 l 0,4 l -4,0 l 4,-14 z M -6,-2 l 0,-10 l 12,0 l 0,10',
+                        fillColor: '#FF2511',
+                        fillOpacity: 0.8,
+                        strokeColor: '#FFFFFF',
+                        strokeWeight: 2,
+                        scale: 1,
+                        rotation: heading,
+                        anchor: new google.maps.Point(0, 0)
+                    };
+                } else {
+                    // Remote controller icon (circle)
+                    markerIcon = {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        fillColor: '#2563eb',
+                        fillOpacity: 0.8,
+                        strokeColor: '#FFFFFF',
+                        strokeWeight: 2,
+                        scale: 8
+                    };
+                }
+
+                markers[sn] = new google.maps.Marker({
+                    position: position,
+                    map: map,
+                    icon: markerIcon,
+                    title: `${deviceType === 'drone' ? 'Drone' : 'Controller'} ${sn}`
+                });
+                
+                // Create path for this device (only for drones)
+                if (deviceType === 'drone') {
+                    // Get color for this drone
+                    const colorIdx = droneColors[sn] !== undefined ? droneColors[sn] : 0;
+                    
+                    paths[sn] = new google.maps.Polyline({
+                        map: map,
+                        path: [position],
+                        strokeColor: getPathColor(colorIdx),
+                        strokeOpacity: 0.7,
+                        strokeWeight: 3,
+                        geodesic: true,
+                        icons: [{
+                            icon: {
+                                path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                                scale: 3,
+                                strokeColor: '#FFFFFF',
+                                strokeWeight: 2,
+                                fillColor: getPathColor(colorIdx),
+                                fillOpacity: 1
+                            },
+                            repeat: '100px'
+                        }]
+                    });
+                    
+                    // Apply visibility based on current settings
+                    const showPath = document.getElementById('show-path').checked;
+                    paths[sn].setVisible(showPath);
+                    
+                    // If "show only selected" is checked and this is not the selected drone
+                    const selectedDrone = document.getElementById('drone-select').value;
+                    const showOnlySelected = document.getElementById('show-only-selected').checked;
+                    if (showOnlySelected && selectedDrone && sn !== selectedDrone) {
+                        paths[sn].setVisible(false);
+                    }
+                }
+                
+                // Add click handler to marker
+                markers[sn].addListener('click', () => {
+                    selectDevice(sn);
+                    
+                    // Update drone selector if this is a drone
+                    if (deviceType === 'drone') {
+                        document.getElementById('drone-select').value = sn;
+                        // Apply visibility settings
+                        if (document.getElementById('show-only-selected').checked) {
+                            toggleSelectedDronePath();
+                        }
+                    }
+                });
+                
+                console.log(`Created new marker for ${deviceType} ${sn} at position:`, position);
+            } else {
+                // Update existing marker
+                markers[sn].setPosition(position);
+                
+                // Update rotation if available (for drones)
+                if (deviceType === 'drone' && heading !== undefined) {
+                    const icon = markers[sn].getIcon();
+                    icon.rotation = heading;
+                    markers[sn].setIcon(icon);
+                }
+                
+                // Add point to path (only for drones)
+                if (deviceType === 'drone' && paths[sn]) {
+                    const path = paths[sn].getPath();
+                    path.push(new google.maps.LatLng(position.lat, position.lng));
+                    
+                    // Update direction arrows visibility
+                    const showDirection = document.getElementById('show-direction').checked;
+                    if (paths[sn].icons && paths[sn].icons.length > 0) {
+                        paths[sn].icons[0].repeat = showDirection ? '100px' : '0px';
+                        paths[sn].set('icons', paths[sn].icons);
+                    }
+                }
+                
+                // Auto-center map if option is checked and this is selected device
+                if (document.getElementById('auto-center').checked && selectedDeviceSN === sn) {
+                    map.panTo(position);
+                }
+            }
+        }
+        
+        // Get color for drone path based on index
+        function getPathColor(index) {
+            const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33F5', '#F5FF33'];
+            return colors[index % colors.length];
+        }
+        
+        // Toggle direction arrows visibility
+        function toggleDirectionArrows() {
+            const showDirection = document.getElementById('show-direction').checked;
+            
+            Object.keys(paths).forEach(sn => {
+                if (paths[sn] && paths[sn].icons && paths[sn].icons.length > 0) {
+                    paths[sn].icons[0].repeat = showDirection ? '100px' : '0px';
+                    paths[sn].set('icons', paths[sn].icons);
+                }
+            });
+        }
+        
+        // Device selection and telemetry display
+        function selectDevice(sn) {
+            selectedDeviceSN = sn;
+            
+            // Update UI to show selected device
+            updateDeviceList();
+            
+            // Show telemetry panel
+            const telemetryPanel = document.getElementById('telemetry-panel');
+            telemetryPanel.classList.remove('d-none');
+            
+            // Update telemetry with current data if available
+            if (deviceData[sn]) {
+                updateTelemetryPanel(deviceData[sn]);
+                
+                // Center map on device
+                if (markers[sn]) {
+                    map.panTo(markers[sn].getPosition());
+                }
+                
+                // If this is a drone, update the drone selector
+                if (deviceData[sn]._deviceType === 'drone') {
+                    document.getElementById('drone-select').value = sn;
+                    
+                    // Apply path visibility settings
+                    if (document.getElementById('show-only-selected').checked) {
+                        toggleSelectedDronePath();
+                    }
+                }
+            } else {
+                // No data yet, show loading state
+                document.getElementById('telemetry-title').textContent = `Device ${sn}`;
+                document.getElementById('altitude').textContent = '-- m';
+                document.getElementById('speed').textContent = '-- m/s';
+                document.getElementById('heading').textContent = '-- °';
+                document.getElementById('distance').textContent = '-- m';
+                document.getElementById('battery').textContent = '--%';
+                document.getElementById('battery-level').style.width = '0%';
+                document.getElementById('raw-data-content').textContent = 'No data available';
+            }
+        }
+        
+        function updateTelemetryPanel(data) {
+            // Skip if no data or no host
+            if (!data || !data.host) {
+                return;
+            }
+            
+            const host = data.host;
+            const isDrone = data._deviceType === 'drone' || host.attitude_head !== undefined;
+            
+            // Update title and device type
+            document.getElementById('telemetry-title').textContent = 
+                `${isDrone ? 'Drone' : 'Remote Controller'} ${data.sn}`;
+            
+            // Get the telemetry grid to modify
+            const telemetryGrid = document.querySelector('.telemetry-grid');
+            
+            // Basic telemetry - handle differently for drone vs controller
+            if (isDrone) {
+                // Drone telemetry - expanded with more details
+                telemetryGrid.innerHTML = `
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Altitude</span>
+                        <span class="telemetry-value" id="altitude">${host.height !== undefined ? `${host.height.toFixed(1)} m` : '-- m'}</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Speed</span>
+                        <span class="telemetry-value" id="speed">${host.horizontal_speed !== undefined ? `${host.horizontal_speed.toFixed(1)} m/s` : '-- m/s'}</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Heading</span>
+                        <span class="telemetry-value" id="heading">${host.attitude_head !== undefined ? `${host.attitude_head.toFixed(0)}°` : '-- °'}</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Distance</span>
+                        <span class="telemetry-value" id="distance">${host.home_distance !== undefined ? `${host.home_distance.toFixed(1)} m` : '-- m'}</span>
+                    </div>
+                `;
+                
+                // Add GPS information section
+                const gpsInfo = document.createElement('div');
+                gpsInfo.className = 'mt-3';
+                gpsInfo.innerHTML = `
+                    <h6 class="mb-2">GPS Information</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">Latitude</span>
+                        <span class="telemetry-value">${host.latitude !== undefined ? host.latitude.toFixed(6) : '--'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">Longitude</span>
+                        <span class="telemetry-value">${host.longitude !== undefined ? host.longitude.toFixed(6) : '--'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">GPS Satellites</span>
+                        <span class="telemetry-value">${host.position_state?.gps_number !== undefined ? host.position_state.gps_number : '--'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="telemetry-label">GPS Fix</span>
+                        <span class="telemetry-value ${host.position_state?.is_fixed ? 'text-success' : 'text-warning'}">
+                            ${host.position_state?.is_fixed ? 'Fixed' : 'Not Fixed'}
+                        </span>
+                    </div>
+                `;
+                
+                // Add attitude information section
+                const attitudeInfo = document.createElement('div');
+                attitudeInfo.className = 'mt-3';
+                attitudeInfo.innerHTML = `
+                    <h6 class="mb-2">Attitude</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">Pitch</span>
+                        <span class="telemetry-value">${host.attitude_pitch !== undefined ? `${host.attitude_pitch.toFixed(1)}°` : '--°'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">Roll</span>
+                        <span class="telemetry-value">${host.attitude_roll !== undefined ? `${host.attitude_roll.toFixed(1)}°` : '--°'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="telemetry-label">Yaw</span>
+                        <span class="telemetry-value">${host.attitude_head !== undefined ? `${host.attitude_head.toFixed(1)}°` : '--°'}</span>
+                    </div>
+                `;
+                
+                // Add flight stats section
+                const flightStats = document.createElement('div');
+                flightStats.className = 'mt-3';
+                flightStats.innerHTML = `
+                    <h6 class="mb-2">Flight Statistics</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">Total Distance</span>
+                        <span class="telemetry-value">${host.total_flight_distance !== undefined ? `${(host.total_flight_distance/1000).toFixed(2)} km` : '--'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="telemetry-label">Total Flight Time</span>
+                        <span class="telemetry-value">${host.total_flight_time !== undefined ? formatFlightTime(host.total_flight_time) : '--'}</span>
+                    </div>
+                `;
+                
+                                // Battery - drone has a nested battery object
+                                if (host.battery && host.battery.capacity_percent !== undefined) {
+                    updateBatteryIndicator(host.battery.capacity_percent);
+                    
+                    // Add detailed battery information
+                    const batteryDetails = document.createElement('div');
+                    batteryDetails.className = 'mt-3';
+                    batteryDetails.innerHTML = `
+                        <h6 class="mb-2">Battery Details</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="telemetry-label">Temperature</span>
+                            <span class="telemetry-value">${host.battery.batteries?.[0]?.temperature !== undefined ? `${host.battery.batteries[0].temperature.toFixed(1)}°C` : '--'}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="telemetry-label">Voltage</span>
+                            <span class="telemetry-value">${host.battery.batteries?.[0]?.voltage !== undefined ? `${(host.battery.batteries[0].voltage/1000).toFixed(2)}V` : '--'}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="telemetry-label">Remaining Flight Time</span>
+                            <span class="telemetry-value">${host.battery.remain_flight_time !== undefined ? formatFlightTime(host.battery.remain_flight_time) : '--'}</span>
+                        </div>
+                    `;
+                    
+                    // Check if we already have this element
+                    const existingBatteryDetails = document.querySelector('.telemetry-panel .battery-details');
+                    if (existingBatteryDetails) {
+                        existingBatteryDetails.replaceWith(batteryDetails);
+                    } else {
+                        // Add before the raw data section
+                        const rawDataSection = document.querySelector('.telemetry-panel .collapsible-section');
+                        rawDataSection.parentNode.insertBefore(batteryDetails, rawDataSection);
+                    }
+                    batteryDetails.classList.add('battery-details');
+                }
+                
+                // Remove any controller-specific elements
+                const wirelessLinkInfo = document.querySelector('.wireless-link-info');
+                if (wirelessLinkInfo) {
+                    wirelessLinkInfo.remove();
+                }
+                
+                // Add the new sections to the telemetry panel
+                // Check if sections already exist and replace them, or add new ones
+                const existingGpsInfo = document.querySelector('.telemetry-panel .gps-info');
+                if (existingGpsInfo) {
+                    existingGpsInfo.replaceWith(gpsInfo);
+                } else {
+                    const batterySection = document.querySelector('.telemetry-panel .mt-3');
+                    batterySection.parentNode.insertBefore(gpsInfo, batterySection.nextSibling);
+                }
+                gpsInfo.classList.add('gps-info');
+                
+                const existingAttitudeInfo = document.querySelector('.telemetry-panel .attitude-info');
+                if (existingAttitudeInfo) {
+                    existingAttitudeInfo.replaceWith(attitudeInfo);
+                } else {
+                    const gpsInfoSection = document.querySelector('.telemetry-panel .gps-info');
+                    gpsInfoSection.parentNode.insertBefore(attitudeInfo, gpsInfoSection.nextSibling);
+                }
+                attitudeInfo.classList.add('attitude-info');
+                
+                const existingFlightStats = document.querySelector('.telemetry-panel .flight-stats');
+                if (existingFlightStats) {
+                    existingFlightStats.replaceWith(flightStats);
+                } else {
+                    const attitudeInfoSection = document.querySelector('.telemetry-panel .attitude-info');
+                    attitudeInfoSection.parentNode.insertBefore(flightStats, attitudeInfoSection.nextSibling);
+                }
+                flightStats.classList.add('flight-stats');
+                
+            } else {
+                // Controller telemetry - use controller-specific layout
+                telemetryGrid.innerHTML = `
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Location</span>
+                        <span class="telemetry-value">${host.latitude ? host.latitude.toFixed(6) : '--'}, ${host.longitude ? host.longitude.toFixed(6) : '--'}</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Signal Quality</span>
+                        <span class="telemetry-value">${host.wireless_link?.sdr_quality || '--'}/5</span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Link Status</span>
+                        <span class="telemetry-value ${host.wireless_link?.sdr_link_state ? 'text-success' : 'text-danger'}">
+                            ${host.wireless_link?.sdr_link_state ? 'Connected' : 'Disconnected'}
+                        </span>
+                    </div>
+                    <div class="telemetry-item">
+                        <span class="telemetry-label">Frequency</span>
+                        <span class="telemetry-value">${host.wireless_link?.sdr_freq_band || '--'} GHz</span>
+                    </div>
+                `;
+                
+                // Add wireless link details
+                const wirelessLinkInfo = document.createElement('div');
+                wirelessLinkInfo.className = 'mt-3 wireless-link-info';
+                wirelessLinkInfo.innerHTML = `
+                    <h6 class="mb-2">Wireless Link</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">Link Quality</span>
+                        <span class="telemetry-value">${host.wireless_link?.sdr_quality || '--'}/5</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="telemetry-label">Signal Strength</span>
+                        <span class="telemetry-value">${host.wireless_link?.sdr_signal_strength !== undefined ? `${host.wireless_link.sdr_signal_strength} dBm` : '--'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="telemetry-label">Channel</span>
+                        <span class="telemetry-value">${host.wireless_link?.sdr_channel || '--'}</span>
+                    </div>
+                `;
+                
+                // Check if we already have this element
+                const existingWirelessLinkInfo = document.querySelector('.telemetry-panel .wireless-link-info');
+                if (existingWirelessLinkInfo) {
+                    existingWirelessLinkInfo.replaceWith(wirelessLinkInfo);
+                } else {
+                    // Add before the raw data section
+                    const batterySection = document.querySelector('.telemetry-panel .mt-3');
+                    batterySection.parentNode.insertBefore(wirelessLinkInfo, batterySection.nextSibling);
+                }
+                
+                // Battery - controller has direct capacity_percent
+                if (host.capacity_percent !== undefined) {
+                    updateBatteryIndicator(host.capacity_percent);
+                }
+                
+                // Remove any drone-specific elements
+                const gpsInfo = document.querySelector('.telemetry-panel .gps-info');
+                if (gpsInfo) gpsInfo.remove();
+                
+                const attitudeInfo = document.querySelector('.telemetry-panel .attitude-info');
+                if (attitudeInfo) attitudeInfo.remove();
+                
+                const flightStats = document.querySelector('.telemetry-panel .flight-stats');
+                if (flightStats) flightStats.remove();
+                
+                const batteryDetails = document.querySelector('.telemetry-panel .battery-details');
+                if (batteryDetails) batteryDetails.remove();
+            }
+            
+            // Update raw data
+            document.getElementById('raw-data-content').textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Helper function to format flight time in minutes:seconds
+        function formatFlightTime(seconds) {
+            if (seconds === undefined) return '--';
+            
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateBatteryIndicator(batteryLevel) {
+            document.getElementById('battery').textContent = `${batteryLevel}%`;
+            
+            // Update battery level bar
+            const batteryLevelEl = document.getElementById('battery-level');
+            batteryLevelEl.style.width = `${batteryLevel}%`;
+            
+            // Change color based on level
+            batteryLevelEl.classList.remove('battery-high', 'battery-medium', 'battery-low');
+            if (batteryLevel < 20) {
+                batteryLevelEl.classList.add('battery-low');
+            } else if (batteryLevel < 50) {
+                batteryLevelEl.classList.add('battery-medium');
+            } else {
+                batteryLevelEl.classList.add('battery-high');
+            }
+        }
+        
+        // Path management
+        function clearPath(sn) {
+            if (paths[sn]) {
+                paths[sn].setPath([]);
+                
+                // If the device has current position data, start a new path from current position
+                if (markers[sn]) {
+                    const currentPos = markers[sn].getPosition();
+                    if (currentPos) {
+                        paths[sn].getPath().push(currentPos);
+                    }
+                }
+            }
+        }
+        
+        function clearAllPaths() {
+            Object.keys(paths).forEach(sn => {
+                clearPath(sn);
+            });
+        }
+        
+        function toggleAllPaths() {
+            const showPath = document.getElementById('show-path').checked;
+            
+            if (showPath) {
+                // Check if we should only show selected drone
+                const selectedDrone = document.getElementById('drone-select').value;
+                const showOnlySelected = document.getElementById('show-only-selected').checked;
+                
+                if (showOnlySelected && selectedDrone) {
+                    // Show only selected drone path
+                    Object.keys(paths).forEach(sn => {
+                        paths[sn].setVisible(sn === selectedDrone);
+                    });
+                } else {
+                    // Show all paths
+                    Object.values(paths).forEach(path => {
+                        path.setVisible(true);
+                    });
+                }
+            } else {
+                // Hide all paths
+                Object.values(paths).forEach(path => {
+                    path.setVisible(false);
+                });
+            }
+        }
+        
+        // Initialize application
+        async function initializeApp() {
+            try {
+                // Login
+                const isLoggedIn = await login();
+                if (!isLoggedIn) {
+                    showError('Login failed. Please check your credentials.');
+                    return;
+                }
+                
+                // Get platform info and devices in parallel
+                await Promise.all([
+                    getPlatformInfo().catch(error => {
+                        console.error('Error getting platform info:', error);
+                        showError('Failed to load platform information');
+                    }),
+                    getDevices().catch(error => {
+                        console.error('Error getting devices:', error);
+                        showError('Failed to load devices');
+                    })
+                ]);
+                
+                // Set up WebSocket connection
+                setupWebSocket();
+                
+                // Initialize Google Maps
+                if (typeof google !== 'undefined' && google.maps) {
+                    initMap();
+                } else {
+                    // If Google Maps API isn't loaded yet, wait for it
+                    window.initMap = initMap;
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError(`Initialization error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>

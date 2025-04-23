@@ -83,50 +83,14 @@ function getMission() {
         <title><?php echo htmlspecialchars($mission['mission_name']); ?> - Mission Details</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-        <style>
-        .photo-album::-webkit-scrollbar {
-            width: 8px;
-        }
-        .photo-album::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .photo-album::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-        .clickable-image:hover {
-            opacity: 0.9;
-            transform: scale(1.02);
-            transition: all 0.2s ease;
-        }
-        /* Drone Monitor Button Styles */
-        .drone-monitor-btn {
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .drone-monitor-btn:hover {
-            background-color: #1d4ed8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
-        }
-        </style>
+
     </head>
     <body>
 
     <!-- Mission Page Layout -->
     <div class="col-md-9 mx-auto col-lg-10 px-md-4">
         <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <h1 class="h2">Details</h1>
-            <!-- Add Drone Monitor Button in the header -->
-            <a href="DroneFleetMonitor.html?mission_id=<?php echo $mission_id; ?>" class="btn drone-monitor-btn" target="_blank">
-                <i class="fas fa-drone"></i> Monitor Drones
-            </a>
+        <h1 class="h2">Details</h1>
         </div>
         <div class="row g-4 mt-4">
             <!-- Left Column - Map Section -->
@@ -172,14 +136,10 @@ function getMission() {
                             </dd>
 
                         </dl>
-                        <div class="mt-4 d-flex gap-2">
+                        <div class="mt-4">
                             <button class="btn btn-primary" onclick="generateReport(<?php echo $mission_id; ?>, this)">
                                 <i class="fas fa-file-pdf me-2"></i>Generate Report
                             </button>
-                            <!-- Add Drone Monitor Button in the mission info card -->
-                            <a href="DroneFleetMonitor.html?mission_id=<?php echo $mission_id; ?>" class="btn drone-monitor-btn">
-                                <i class="fas fa-drone"></i>
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -197,19 +157,6 @@ function getMission() {
                                 ?>
                             </dd>
                         </dl>
-                    </div>
-                </div>
-                
-                <!-- Add Drone Monitoring Section -->
-                <div class="card mt-3">
-                    <div class="card-header">
-                        <h5 class="mb-0">Drone Fleet</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-2">Monitor your drone fleet in real-time during the inspection mission.</p>
-                        <a href="DroneFleetMonitor.html?mission_id=<?php echo $mission_id; ?>" class="btn btn-primary w-100" target="_blank">
-                            <i class="fas fa-drone me-2"></i>Open Drone Monitor
-                        </a>
                     </div>
                 </div>
             </div>
@@ -270,15 +217,9 @@ function getMission() {
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">Photo Album</h5>
-                        <div>
-                            <!-- Add Drone Monitor Button in the photo album header -->
-                            <a href="DroneFleetMonitor.html?mission_id=<?php echo $mission_id; ?>" class="btn drone-monitor-btn btn-sm me-2">
-                                <i class="fas fa-drone me-1"></i>Monitor Drones
-                            </a>
-                            <button class="btn btn-primary btn-sm" onclick="downloadMissionFile(<?php echo $mission_id; ?>)">
-                                <i class="fas fa-download me-2"></i>Download All Images
-                            </button>
-                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="downloadMissionFile(<?php echo $mission_id; ?>)">
+                            <i class="fas fa-download me-2"></i>Download All Images
+                        </button>
                     </div>
                     <div class="card-body photo-album" style="max-height: 60vh; overflow-y: auto;">
                         <?php if (!empty($images)): ?>
@@ -362,34 +303,6 @@ function getMission() {
         </div>
     </div>
 
-    <!-- Drone Monitor Info Modal -->
-    <div class="modal fade" id="droneMonitorInfoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Drone Fleet Monitor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>The Drone Fleet Monitor allows you to:</p>
-                    <ul>
-                        <li>Track drone positions in real-time</li>
-                        <li>Monitor battery levels and telemetry data</li>
-                        <li>View flight paths and trajectories</li>
-                        <li>Receive alerts for low battery or connection issues</li>
-                    </ul>
-                    <p>This will open in a new window to allow simultaneous monitoring while working with inspection data.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <a href="DroneFleetMonitor.html?mission_id=<?php echo $mission_id; ?>" class="btn btn-primary" target="_blank">
-                        <i class="fas fa-external-link-alt me-2"></i>Open Monitor
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Include necessary JS files -->
     <!-- For example, Bootstrap JS and its dependencies -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -402,30 +315,6 @@ function getMission() {
         img.addEventListener('click', () => {
             document.getElementById('modalImage').src = img.dataset.original;
             new bootstrap.Modal(document.getElementById('imageModal')).show();
-        });
-    });
-
-    // Add event listener for drone monitor buttons
-    document.addEventListener('DOMContentLoaded', function() {
-        const droneMonitorLinks = document.querySelectorAll('.drone-monitor-btn');
-        droneMonitorLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
-                // If user holds Ctrl or Command key, let the default behavior happen (open in new tab)
-                if (e.ctrlKey || e.metaKey) {
-                    return;
-                }
-                
-                e.preventDefault();
-                const href = this.getAttribute('href');
-                
-                // Show info modal or open directly based on user preference
-                if (localStorage.getItem('showDroneMonitorInfo') === 'false') {
-                    window.open(href, '_blank');
-                } else {
-                    const modal = new bootstrap.Modal(document.getElementById('droneMonitorInfoModal'));
-                    modal.show();
-                }
-            });
         });
     });
     </script>
@@ -488,6 +377,24 @@ function getMission() {
         }
     });
     </script>
+    
+    <style>
+    .photo-album::-webkit-scrollbar {
+        width: 8px;
+    }
+    .photo-album::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    .photo-album::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    .clickable-image:hover {
+        opacity: 0.9;
+        transform: scale(1.02);
+        transition: all 0.2s ease;
+    }
+    </style>
 
     <script>
     function generateReport(missionId, button) {
