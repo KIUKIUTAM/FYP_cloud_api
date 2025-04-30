@@ -4,7 +4,6 @@ services:
       context: ./source
       dockerfile: nginx/Dockerfile
     image: nginx:stable-alpine
-    container_name: nginx
     ports:
       - "80:80"
       - "8088:8088"
@@ -15,8 +14,8 @@ services:
     depends_on:
       - php
       - python
-      - cloud_api_sample
     networks:
+      - app_network
       - cloud_service_bridge
     restart: unless-stopped
     healthcheck:
@@ -28,23 +27,22 @@ services:
   php:
     build: ./source/php
     image: php:8.1-fpm
-    container_name: php
     volumes:
       - ./source/php/src/fyp_frontend:/var/www/html:rw
       - ./source/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
     working_dir: /var/www/html
     environment:
-      - DB_HOST=cloud_api_sample_mysql
+      - DB_HOST=mysql
       - DB_USER=root
       - DB_PASSWORD=root
       - DB_NAME=cloud_api
       - COMPOSER_MEMORY_LIMIT=-1
       - MINIO_ENDPOINT=http://minio:9000
-      - MINIO_ACCESS_KEY=ROOTUSER
-      - MINIO_SECRET_KEY=CHANGEME123
+      - MINIO_ACCESS_KEY=Sf6eJNH2UvUyjugpYvws
+      - MINIO_SECRET_KEY=V4WX6EHEFIQyna5HyP0Dv3hIoPu4VIn6zLeHmqQd
       - MINIO_CONSOLE=http://minio:9001
     networks:
-      - cloud_service_bridge
+      - app_network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "php-fpm", "-t"]
@@ -54,25 +52,23 @@ services:
 
   composer:
     image: composer:2
-    container_name: composer
     volumes:
       - ./source/php/src:/app:rw
     working_dir: /app
     networks:
-      - cloud_service_bridge
+      - app_network
     environment:
       - COMPOSER_MEMORY_LIMIT=-1
     command: ["composer", "install", "--no-dev", "--optimize-autoloader"]
 
   python:
     build: ./source/python
-    container_name: python
     ports:
       - "8000:8000"
     volumes:
       - ./source/python/app:/app:rw
     networks:
-      - cloud_service_bridge
+      - app_network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -83,7 +79,6 @@ services:
   cloud_api_sample:
     build: ./source/backend_service
     image: dji/cloud_api_sample
-    container_name: cloud_api_sample
     depends_on:
       mysql:
         condition: service_healthy
@@ -91,21 +86,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
-        condition: service_started
     ports:
       - "6789:6789"
     volumes:
       - /etc/localtime:/etc/localtime:ro
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://cloud_api_sample_mysql:3306/cloud_api?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
-      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
-      - SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=30000
-      - SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=10
-      - SPRING_DATASOURCE_HIKARI_MAX_LIFETIME=1800000
-      - SPRING_INTEGRATION_MQTT_SERVER_URIS=tcp://emqx-broker:1883
     hostname: cloud_api_sample
     restart: unless-stopped
     networks:
@@ -115,16 +99,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    command: ["sh", "-c", "sleep 150 && java -jar /app.jar"]
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
   emqx:
     image: emqx:4.4
-    container_name: emqx
     ports:
       - "18083:18083"
       - "1883:1883"
@@ -144,16 +121,10 @@ services:
       interval: 30s
       timeout: 20s
       retries: 5
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
+      start_period: 40s
 
   mysql:
     image: mysql:8.0
-    container_name: cloud_api_sample_mysql
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_DATABASE=cloud_api
@@ -163,6 +134,7 @@ services:
       - mysql_data:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro
     networks:
+      - app_network
       - cloud_service_bridge
     hostname: cloud_api_sample_mysql
     ports:
@@ -172,18 +144,11 @@ services:
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 30s
-      timeout: 30s
-      retries: 5
-      start_period: 180s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
+      timeout: 10s
+      retries: 3
 
   redis:
     image: redis:6.2-alpine
-    container_name: redis
     restart: unless-stopped
     hostname: cloud_api_sample_redis
     ports:
@@ -196,41 +161,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
     volumes:
       - redis_data:/data
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
 
   minio:
     image: quay.io/minio/minio
-    container_name: minio
+    container_name: minio1
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"  # API端口
+      - "9001:9001"  # 控制台端口
     volumes:
       - D:/minio/data:/data
     environment:
-      - MINIO_ROOT_USER=ROOTUSER
-      - MINIO_ROOT_PASSWORD=CHANGEME123
+      MINIO_ROOT_USER: ROOTUSER
+      MINIO_ROOT_PASSWORD: CHANGEME123
     command: server /data --console-address ":9001"
     networks:
-      - cloud_service_bridge
+      - app_network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
 
 volumes:
   mysql_data:
@@ -239,6 +187,8 @@ volumes:
     driver: local
 
 networks:
+  app_network:
+    driver: bridge
   cloud_service_bridge:
     driver: bridge
     ipam:
