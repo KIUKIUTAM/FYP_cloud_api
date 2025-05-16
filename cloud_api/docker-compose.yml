@@ -1,0 +1,196 @@
+services:
+  nginx:
+    build:
+      context: ./source
+      dockerfile: nginx/Dockerfile
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+      - "8088:8088"
+    volumes:
+      - ./source/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./source/php/src/fyp_frontend:/var/www/html:ro
+      - ./source/vue_front_page:/home/vue_front_page:ro
+    depends_on:
+      - php
+      - python
+    networks:
+      - app_network
+      - cloud_service_bridge
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  php:
+    build: ./source/php
+    image: php:8.1-fpm
+    volumes:
+      - ./source/php/src/fyp_frontend:/var/www/html:rw
+      - ./source/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
+    working_dir: /var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=cloud_api
+      - COMPOSER_MEMORY_LIMIT=-1
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=Sf6eJNH2UvUyjugpYvws
+      - MINIO_SECRET_KEY=V4WX6EHEFIQyna5HyP0Dv3hIoPu4VIn6zLeHmqQd
+      - MINIO_CONSOLE=http://minio:9001
+    networks:
+      - app_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php-fpm", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  composer:
+    image: composer:2
+    volumes:
+      - ./source/php/src:/app:rw
+    working_dir: /app
+    networks:
+      - app_network
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    command: ["composer", "install", "--no-dev", "--optimize-autoloader"]
+
+  python:
+    build: ./source/python
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./source/python/app:/app:rw
+    networks:
+      - app_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cloud_api_sample:
+    build: ./source/backend_service
+    image: dji/cloud_api_sample
+    depends_on:
+      mysql:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "6789:6789"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    hostname: cloud_api_sample
+    restart: unless-stopped
+    networks:
+      - cloud_service_bridge
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  emqx:
+    image: emqx:4.4
+    ports:
+      - "18083:18083"
+      - "1883:1883"
+      - "8083:8083"
+      - "8883:8883"
+      - "8084:8084"
+    environment:
+      - EMQX_ALLOW_ANONYMOUS=true
+      - EMQX_NODE_NAME=emqx@node1
+      - EMQX_NODE_COOKIE=emqx_secret_cookie
+    hostname: emqx-broker
+    networks:
+      - cloud_service_bridge
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18083"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 40s
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=cloud_api
+      - MYSQL_USER=djiuser
+      - MYSQL_PASSWORD=djipassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - app_network
+      - cloud_service_bridge
+    hostname: cloud_api_sample_mysql
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:6.2-alpine
+    restart: unless-stopped
+    hostname: cloud_api_sample_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cloud_service_bridge
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - redis_data:/data
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio1
+    ports:
+      - "9000:9000"  # API端口
+      - "9001:9001"  # 控制台端口
+    volumes:
+      - D:/minio/data:/data
+    environment:
+      MINIO_ROOT_USER: ROOTUSER
+      MINIO_ROOT_PASSWORD: CHANGEME123
+    command: server /data --console-address ":9001"
+    networks:
+      - app_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge
+  cloud_service_bridge:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.6.0/24

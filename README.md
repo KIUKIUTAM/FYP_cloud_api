@@ -8,41 +8,30 @@ change the ip to your localhost<br>
 edit cloud_api_sample/source/nginx/front_page/src/api/http/config.ts<br>
 change the ip to your localhost<br>
 
+3.<br>
+put the model in to FYP_cloud_api\cloud_api\source\python\app\model <br>
+https://drive.google.com/file/d/1ykycizTj5vJ-9QyvQrGH4miwfctzC_X1/view?usp=sharing
+
+minio config:
+*change credential key
+*bucket name: crack-detection
+(set public)
+docker-compose\php\src\fyp_frontend\dashboard\_main\minio_config.inc.php
+docker-compose\python\app\app.py
+docker-compose\php\src\fyp_frontend\dashboard\_main\images_upload.inc.php
+
+
 open docker :<br>
 
 
 
-
-
-cd E:\dji_project\cloud_api_sample_v1\cloud_api_sample
-<br>
-docker load -i cloud_api_sample_docker_v1.10.0.tar
-<br>
-remove nginx image<br>
-cd source/backend_service/
-<br>
-
-docker build -t dji/cloud_api_sample:latest .
-<br>
-
-cd ..
-<br>
-
-cd ..
-<br>
-
-cd source/nginx/
-<br>
-
-docker build -t dji/nginx:latest .
-<br>
-
-
+docker compose build <br>
 docker compose up -d
 <br>
 
 
-
+O:\cloud_api_version\cloud_api_version\dji_project\cloud_api_sample_v2\cloud_api_sample\source\nginx\front_page
+npm run service
 
 
 OSS(minIO):<br>

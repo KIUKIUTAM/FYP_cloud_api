@@ -1,0 +1,10 @@
+.map-container {
+  position: relative;
+  overflow: hidden;
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+}
+
+#map {
+  min-height: 400px;
+}
